@@ -1,0 +1,161 @@
+﻿{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.14/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.14",
+  "version": "1.0.6",
+  "id": "<<Client ID>>",
+  "packageName": "com.microsoft.teams.botallmeetingevents",
+  "developer": {
+    "name": "Microsoft",
+    "websiteUrl": "https://www.microsoft.com",
+    "privacyUrl": "https://www.microsoft.com/privacy",
+    "termsOfUseUrl": "https://www.microsoft.com/termsofuse"
+  },
+  "name": {
+    "short": "Meeting Events",
+    "full": "Sample for meeting events and meeting participant events"
+  },
+  "description": {
+    "short": "Access real-time meeting events and meeting participant events",
+    "full": "This sample demos a bot with access to meeting events and meeting participant events"
+  },
+  "icons": {
+    "outline": "outline.png",
+    "color": "color.png"
+  },
+  "bots": [
+    {
+      "botId": "<<Client ID>>",
+      "scopes": [
+        "team",
+        "personal",
+        "groupChat"
+      ],
+      "isNotificationOnly": false
+    }
+  ],
+  "accentColor": "#60A18E",
+  "composeExtensions": [
+    {
+      "botId": "<<Client ID>>",
+      "canUpdateConfiguration": true,
+      "commands": [
+        {
+          "id": "searchQuery",
+          "type": "query",
+          "title": "Search",
+          "description": "Perform a search",
+          "initialRun": true,
+          "fetchTask": false,
+          "context": [
+            "commandBox",
+            "compose"
+          ],
+          "parameters": [
+            {
+              "name": "searchQuery",
+              "title": "Search",
+              "description": "Your search query",
+              "inputType": "text"
+            }
+          ]
+        },
+        {
+          "id": "SHOWPROFILE",
+          "type": "action",
+          "title": "Profile",
+          "description": "User Profile",
+          "initialRun": false,
+          "fetchTask": true,
+          "context": [
+            "commandBox",
+            "compose",
+            "message"
+          ],
+          "parameters": [
+            {
+              "name": "param",
+              "title": "param",
+              "description": ""
+            }
+          ]
+        },
+        {
+          "id": "SignOutCommand",
+          "type": "action",
+          "title": "Sign Out",
+          "description": "Sign out from authenticated services.",
+          "initialRun": false,
+          "fetchTask": true,
+          "context": [
+            "commandBox",
+            "compose"
+          ],
+          "parameters": [
+            {
+              "name": "param",
+              "title": "param",
+              "description": ""
+            }
+          ]
+        }
+      ],
+      "messageHandlers": [
+        {
+          "type": "link",
+          "value": {
+            "domains": [
+              "*.botframework.com",
+              "*.teams.microsoft.com",
+              "*.cdn.office.net",
+              "<<Domain URL>>"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "staticTabs": [
+    {
+      "entityId": "auth",
+      "name": "SSO Tab",
+      "contentUrl": "https://<<Domain URL>>/Home/Index",
+      "websiteUrl": "https://<<Domain URL>>/Index",
+      "scopes": [
+        "personal",
+        "team"
+      ]
+    }
+  ],
+  "permissions": [
+    "identity",
+    "messageTeamMembers"
+  ],
+  "validDomains": [
+    "<<Domain URL>>",
+    "teams.microsoft.com",
+    "*.cdn.office.net",
+    "*.botframework.com"
+  ],
+  "webApplicationInfo": {
+    "id": "<<Client ID>>",
+    "resource": "api://<<Client ID>>/botid-<<Client ID>>"
+  },
+  "authorization": {
+    "permissions": {
+      "resourceSpecific": [
+        {
+          "name": "OnlineMeeting.ReadBasic.Chat",
+          "type": "Application"
+        },
+        {
+          "name": "ChannelMeeting.ReadBasic.Group",
+          "type": "Application"
+        },
+        {
+          "name": "OnlineMeetingParticipant.Read.Chat",
+          "type": "Application"
+        }
+      ]
+    }
+  }
+}
