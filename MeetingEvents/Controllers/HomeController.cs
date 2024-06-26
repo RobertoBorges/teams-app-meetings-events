@@ -6,6 +6,7 @@ namespace TeamsAuthSSO.Controllers
 {
     using System;
     using System.Diagnostics;
+    using System.IO;
     using System.Net.Http;
     using System.Threading.Tasks;   
     using Microsoft.AspNetCore.Authorization;
@@ -42,6 +43,23 @@ namespace TeamsAuthSSO.Controllers
             return View();
         }
 
+        //Methose that receives a Post from GraphAPI for a subscription event
+        [HttpPost("api/webhook")]
+        public async Task<IActionResult> Webhook()
+        {
+            // Validate the new subscription by sending the token back to Microsoft Graph
+            // Send the token back by responding to the validationToken query parameter
+            if (this.Request.Query.ContainsKey("validationToken"))
+            {
+                var token = this.Request.Query["validationToken"];
+                return Content(token, "plain/text");
+            }
+
+            // Parse the received notifications.
+            var content = await new StreamReader(this.Request.Body).ReadToEndAsync();
+            return Content(string.Empty);
+        }
+        
         public IActionResult Configure()
         {
 

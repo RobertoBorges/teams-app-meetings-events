@@ -43,10 +43,10 @@ Please find below demo manifest which is deployed on Microsoft Azure and you can
   # determine dotnet version
   dotnet --version
   ```
-- Publicly addressable https url or tunnel such as [dev tunnel](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/get-started?tabs=windows) or [ngrok](https://ngrok.com/) latest version or [Tunnel Relay](https://github.com/OfficeDev/microsoft-teams-tunnelrelay) 
+- Publicly addressable https url or tunnel such as [dev tunnel](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/get-started?tabs=windows) or [serveo.net](https://serveo.net/) latest version or [Tunnel Relay](https://github.com/OfficeDev/microsoft-teams-tunnelrelay) 
 
 ## Setup
-> NOTE: The free ngrok plan will generate a new URL every time you run it, which requires you to update your Azure AD registration, the Teams app manifest, and the project configuration. A paid account with a permanent ngrok URL is recommended.
+> NOTE: if you want to have a fixed domain with Serveo, you should register first e.g.: `ssh -R mydomain:80:localhost:3978 serveo.net`, this will avoid you have a new URL everytime you run the command.
 
 1) Setup for Bot
    - Register Azure AD application resource in Azure portal
@@ -57,11 +57,11 @@ Please find below demo manifest which is deployed on Microsoft Azure and you can
 
   **NOTE:** When you create your bot you will create an App ID and App password - make sure you keep these for later.
 
-2) Setup NGROK  
-   Run ngrok - point to port 3978
+2) Setup Serveo  
+   Run ssh -R 80:localhost:3978 serveo.net
 
    ```bash
-   ngrok http 3978 --host-header="localhost:3978"
+   ssh -R 80:localhost:3978 serveo.net
    ```  
 
    Alternatively, you can also use the `dev tunnels`. Please follow [Create and host a dev tunnel](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/get-started?tabs=windows) and host the tunnel with anonymous user access command as shown below:
@@ -101,7 +101,7 @@ Please find below demo manifest which is deployed on Microsoft Azure and you can
 Modify the `manifest.json` in the `/AppManifest` folder and replace the following details
 
    - `<<App-ID>>` with your Microsoft Entra ID app registration id   
-   - `<<VALID DOMAIN>>` with base Url domain. E.g. if you are using ngrok it would be `https://1234.ngrok-free.app` then your domain-name will be `1234.ngrok-free.app` and if you are using dev tunnels then your domain will be like: `12345.devtunnels.ms`.
+   - `<<VALID DOMAIN>>` with base Url domain. E.g. if you are using Serveo it would be `https://1b6xxxx62c253d270b610ec09a7b3b39a17.serveo.net/` then your domain-name will be `1b6xxxx62c253d270b610ec09a7b3b39a17.serveo.net` and if you are using dev tunnels then your domain will be like: `12345.devtunnels.ms`.
    - Zip the contents of `AppManifest` folder into a `manifest.zip`, and use the `manifest.zip` to deploy in app store
    - - **Upload** the `manifest.zip` to Teams
          - Select **Apps** from the left panel.

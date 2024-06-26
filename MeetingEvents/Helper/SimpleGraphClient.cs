@@ -127,7 +127,7 @@ namespace Microsoft.BotBuilderSamples
                     stream.Seek(0, SeekOrigin.Begin);
                     stream.CopyTo(fileStream);
                 }
-                return  "/photos/" + fileName;
+                return "/photos/" + fileName;
             }
             catch (Exception ex)
             {
@@ -157,6 +157,46 @@ namespace Microsoft.BotBuilderSamples
         {
             var graphClient = GetAuthenticatedClient();
             return await graphClient.Me.Request().GetAsync();
+        }
+
+        public async Task<bool> TrySubscribeToCallRecordEventAsync(string notificationUrl,
+                        string changeType = "created",
+                        int expirationDurationInMinutes = 4230)
+        {
+            try
+            {
+                var graphClient = GetAuthenticatedClient();
+        
+                var user = await graphClient.Me.Request()
+                    .Select(u => new { u.Id, u.DisplayName, u.Mail, u.UserPrincipalName })
+                    .GetAsync();
+
+                var subscription = new Subscription
+                {
+                    ChangeType = changeType,
+                    NotificationUrl = notificationUrl,
+                    Resource = $"users/{user.Id}/onlineMeetings/getAllRecordings",
+                    ExpirationDateTime = DateTimeOffset.UtcNow.AddMinutes(expirationDurationInMinutes),
+                    ClientState = Guid.NewGuid().ToString() // A client-generated identifier to validate the origin of the notification.
+                };
+        
+                var createdSubscription = await graphClient.Subscriptions
+                                                            .Request()
+                                                            .AddAsync(subscription);
+        
+                // Check if the subscription was created successfully
+                if (createdSubscription != null && !string.IsNullOrEmpty(createdSubscription.Id))
+                {
+                    return true; // Subscription was successful
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log the exception details
+                Console.WriteLine($"An error occurred while creating the subscription: {ex.Message}");
+            }
+        
+            return false; // Subscription failed
         }
     }
 }

@@ -5,7 +5,6 @@ namespace MeetingBots
 {
     using System;
     using System.Collections.Generic;
-    using MeetingEvents.Bots;
     using Microsoft.AspNetCore.Authentication.JwtBearer;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
@@ -39,9 +38,6 @@ namespace MeetingBots
             // Create the User state. (Used in this bot's Dialog implementation.)
             services.AddSingleton<UserState>();
 
-            // The Dialog that will be run by the bot.
-            services.AddSingleton<MainDialog>();
-
             // Create the Bot Framework Adapter with error handling enabled.
             services.AddSingleton<IBotFrameworkHttpAdapter, AdapterWithErrorHandler>();
 
@@ -50,6 +46,28 @@ namespace MeetingBots
 
             // Register the Token Exchange Helper, for processing TokenExchangeOperation Invoke Activities 
             services.AddSingleton<TokenExchangeHelper>();
+
+            // Register the Token Exchange Helper, for processing TokenExchangeOperation Invoke Activities 
+            services.AddSingleton<TokenExchangeHelper>();
+
+            // // Create the bot as a transient. In this case the ASP Controller is expecting an IBot.
+            // services.AddTransient<IBot, ActivityBot>();
+
+            // The Dialog that will be run by the bot.
+            services.AddSingleton<MainDialog>();
+
+            // Register the Token Exchange Helper, for processing TokenExchangeOperation Invoke Activities 
+            services.AddSingleton<TokenExchangeHelper>();
+
+            // Create the bot as a transient. In this case the ASP Controller is expecting an IBot.
+            services.AddTransient<IBot, TeamsBot<MainDialog>>();
+
+            // Creating the storage.
+            var storage = new MemoryStorage();
+
+            // Create the Conversation state passing in the storage layer.
+            var conversationState = new ConversationState(storage);
+            services.AddSingleton(conversationState);
 
             services.AddControllersWithViews();
             services.AddHttpClient("WebClient", client => client.Timeout = TimeSpan.FromSeconds(600));
@@ -64,17 +82,7 @@ namespace MeetingBots
             {
                 options.TokenValidationParameters.ValidAudiences = new List<string> { Configuration["AzureAd:ClientId"], Configuration["AzureAd:ApplicationIdURI"].ToUpperInvariant() };
                 options.TokenValidationParameters.AudienceValidator = SSOAuthHelper.AudienceValidator;
-            });
-
-            // Create the bot as a transient. In this case the ASP Controller is expecting an IBot.
-            services.AddTransient<IBot, ActivityBot>();
-
-            // Creating the storage.
-            var storage = new MemoryStorage();
-
-            // Create the Conversation state passing in the storage layer.
-            var conversationState = new ConversationState(storage);
-            services.AddSingleton(conversationState);
+            });            
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
