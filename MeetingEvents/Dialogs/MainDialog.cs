@@ -62,7 +62,7 @@ namespace Microsoft.BotBuilderSamples
                 var heroCard = new ThumbnailCard
                 {
                     Title = "Thumbnail Card",
-                    Text = $"Hello, {me.DisplayName}",
+                    Text = $"Hello, {me.DisplayName}, conversation id: {stepContext.Context.Activity.Conversation.Id}, service URL: {stepContext.Context.Activity.ServiceUrl}",
                     Images = new List<CardImage> { new CardImage(imagelink) },
                 };
                 var attachments = new Attachment(HeroCard.ContentType, null, heroCard);

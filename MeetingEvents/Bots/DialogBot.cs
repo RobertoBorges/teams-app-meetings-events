@@ -11,6 +11,7 @@ using MeetingEvents.Models;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Builder.Teams;
+using Microsoft.Bot.Connector;
 using Microsoft.Bot.Connector.Authentication;
 using Microsoft.Bot.Schema;
 using Microsoft.Bot.Schema.Teams;
@@ -18,6 +19,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using Newtonsoft.Json.Linq;
+using Polly;
+using Polly.CircuitBreaker;
 
 namespace Microsoft.BotBuilderSamples
 {
@@ -29,6 +32,7 @@ namespace Microsoft.BotBuilderSamples
     public class DialogBot<T> : TeamsActivityHandler
         where T : Dialog
     {
+         static readonly Random _random = new Random();
         protected readonly ILogger _logger;
         protected readonly BotState _userState;
         protected readonly BotState _conversationState;
@@ -36,6 +40,8 @@ namespace Microsoft.BotBuilderSamples
         private readonly string _connectionName;
         private readonly string _siteUrl;
         private readonly IStatePropertyAccessor<string> _userConfigProperty;
+        private readonly string _appId;
+        private readonly string _appSecret; 
 
         public DialogBot(ConversationState conversationState, UserState userState, T dialog, ILogger<DialogBot<T>> logger, IConfiguration configuration)
         {
@@ -46,6 +52,8 @@ namespace Microsoft.BotBuilderSamples
             _dialog = dialog;
             _siteUrl = configuration["SiteUrl"] ?? throw new NullReferenceException("SiteUrl");
             _userConfigProperty = userState.CreateProperty<string>("UserConfiguration");
+            _appId = configuration["MicrosoftAppId"];
+            _appSecret = configuration["MicrosoftAppPassword"];
         }
 
         public override async Task OnTurnAsync(ITurnContext turnContext, CancellationToken cancellationToken = default)
@@ -494,7 +502,7 @@ namespace Microsoft.BotBuilderSamples
             var conversationData = await conversationStateAccessors.GetAsync(turnContext, () => new MeetingData());
             conversationData.StartTime = meeting.StartTime;
             await _conversationState.SaveChangesAsync(turnContext, false, cancellationToken);
-            await turnContext.SendActivityAsync(MessageFactory.Attachment(GetAdaptiveCardForMeetingStart(meeting)));
+            await turnContext.SendActivityAsync(MessageFactory.Attachment(GetAdaptiveCardForMeetingStart(meeting, conversationData, turnContext, cancellationToken)));
         }
 
         /// <summary>
@@ -509,13 +517,19 @@ namespace Microsoft.BotBuilderSamples
             var conversationStateAccessors = _conversationState.CreateProperty<MeetingData>(nameof(MeetingData));
             var conversationData = await conversationStateAccessors.GetAsync(turnContext, () => new MeetingData());
             await turnContext.SendActivityAsync(MessageFactory.Attachment(GetAdaptiveCardForMeetingEnd(meeting, conversationData,  turnContext, cancellationToken)));
+            await SendToThreadAsync(_appId, _appSecret, turnContext.Activity.ServiceUrl, turnContext.Activity.Conversation.Id, "Meeting has ended");
         }
 
         /// <summary>
         /// Sample Adaptive card for Meeting Start event.
         /// </summary>
-        private Bot.Schema.Attachment GetAdaptiveCardForMeetingStart(MeetingStartEventDetails meeting)
+        private Bot.Schema.Attachment GetAdaptiveCardForMeetingStart(MeetingStartEventDetails meeting, 
+            MeetingData conversationData,
+             ITurnContext<IEventActivity> turnContext, 
+             CancellationToken cancellationToken)
         {
+            var tokenResponse = GetTokenResponse(turnContext, null, cancellationToken);
+
             AdaptiveCard card = new AdaptiveCard(new AdaptiveSchemaVersion("1.2"))
             {
                 Body = new List<AdaptiveElement>
@@ -537,19 +551,7 @@ namespace Microsoft.BotBuilderSamples
                                 {
                                     new AdaptiveTextBlock
                                     {
-                                        Text = "Start id: " + meeting.Id + " at " + meeting.StartTime.ToLocalTime().ToString("HH:mm:ss") + " UTC.",
-                                        Wrap = true,
-                                    },
-                                },
-                            },
-                            new AdaptiveColumn
-                            {
-                                Width = AdaptiveColumnWidth.Auto,
-                                Items = new List<AdaptiveElement>
-                                {
-                                    new AdaptiveTextBlock
-                                    {
-                                        Text = Convert.ToString(meeting.StartTime.ToLocalTime()),
+                                        Text = $"Start id: {meeting.Id} , User Token is {tokenResponse.Result.Token.ToString()}, conversation id: {turnContext.Activity.Conversation.Id}, service URL: {turnContext.Activity.ServiceUrl}",
                                         Wrap = true,
                                     },
                                 },
@@ -587,10 +589,8 @@ namespace Microsoft.BotBuilderSamples
             var meetingDurationText = meetingDuration.Minutes < 1 ?
                   Convert.ToInt32(meetingDuration.Seconds) + "s"
                 : Convert.ToInt32(meetingDuration.Minutes) + "min " + Convert.ToInt32(meetingDuration.Seconds) + "s";
-
-            var tokenResponse = GetTokenResponse(turnContext, "null", cancellationToken).Result;
-            var client = new SimpleGraphClient(tokenResponse.Token);
-            var subscription = client.TrySubscribeToCallRecordEventAsync($"{_siteUrl}/api/webhook", "created", 5).Result;
+            
+            var tokenResponse = GetTokenResponse(turnContext, null, cancellationToken);
             
             AdaptiveCard card = new AdaptiveCard(new AdaptiveSchemaVersion("1.2"))
             {
@@ -598,7 +598,7 @@ namespace Microsoft.BotBuilderSamples
                 {
                     new AdaptiveTextBlock
                     {
-                        Text = meeting.Title  + "- ended",
+                        Text = meeting.Title  + $"- ended",
                         Weight = AdaptiveTextWeight.Bolder,
                         Spacing = AdaptiveSpacing.Medium,
                     },
@@ -613,29 +613,17 @@ namespace Microsoft.BotBuilderSamples
                                 {
                                     new AdaptiveTextBlock
                                     {
-                                        Text = "End Time : ",
+                                        Text = $"End Time : {Convert.ToString(meeting.EndTime.ToLocalTime())}",
                                         Wrap = true,
                                     },
                                     new AdaptiveTextBlock
                                     {
-                                        Text = "Total duration : ",
-                                        Wrap = true,
-                                    },
-                                },
-                            },
-                            new AdaptiveColumn
-                            {
-                                Width = AdaptiveColumnWidth.Auto,
-                                Items = new List<AdaptiveElement>
-                                {
-                                    new AdaptiveTextBlock
-                                    {
-                                        Text = Convert.ToString(meeting.EndTime.ToLocalTime()),
+                                        Text = $"Total duration : {meetingDurationText}",
                                         Wrap = true,
                                     },
                                     new AdaptiveTextBlock
                                     {
-                                        Text = meetingDurationText,
+                                        Text = $"Meeting id: {meeting.Id} , User Token is {tokenResponse.Result.Token.ToString()}, conversation id: {turnContext.Activity.Conversation.Id}, service URL: {turnContext.Activity.ServiceUrl}",
                                         Wrap = true,
                                     },
                                 },
@@ -650,6 +638,67 @@ namespace Microsoft.BotBuilderSamples
                 ContentType = AdaptiveCard.ContentType,
                 Content = card,
             };
+        }
+
+        // Create the send policy for Microsoft Teams
+        // For more information about these policies
+        // see: http://www.thepollyproject.org/
+        static IAsyncPolicy CreatePolicy() {
+            // Policy for handling the short-term transient throttling.
+            // Retry on throttling, up to 3 times with a 2,4,8 second delay between with a 0-1s jitter.
+            var transientRetryPolicy = Policy
+                    .Handle<ErrorResponseException>(ex => ex.Message.Contains("429"))
+                    .WaitAndRetryAsync(
+                        retryCount: 3, 
+                        (attempt) => TimeSpan.FromSeconds(Math.Pow(2, attempt)) + TimeSpan.FromMilliseconds(_random.Next(0, 1000)));
+
+            // Policy to avoid sending even more messages when the long-term throttling occurs.
+            // After 5 messages fail to send, the circuit breaker trips & all subsequent calls will throw
+            // a BrokenCircuitException for 10 minutes.
+            // Note, in this application this cannot trip since it only sends one message at a time!
+            // This is left in for completeness / demonstration purposes.
+            var circuitBreakerPolicy = Policy
+                .Handle<ErrorResponseException>(ex => ex.Message.Contains("429"))
+                .CircuitBreakerAsync(exceptionsAllowedBeforeBreaking: 5, TimeSpan.FromMinutes(10));
+            
+            // Policy to wait and retry when long-term throttling occurs. 
+            // This will retry a single message up to 5 times with a 10 minute delay between each attempt.
+            // Note, in this application this cannot trip since the circuit breaker above cannot trip.
+            // This is left in for completeness / demonstration purposes.
+            var outerRetryPolicy = Policy
+                .Handle<BrokenCircuitException>()
+                .WaitAndRetryAsync(
+                    retryCount: 5,
+                    (_) => TimeSpan.FromMinutes(10));
+            
+            // Combine all three policies so that it will first attempt to retry short-term throttling (inner-most)
+            // After 15 (5 messages, 3 failures each) consecutive failed attempts to send a message it will trip the circuit breaker
+            // which will fail all messages for the next ten minutes. It will attempt to send messages up to 5 times for a total
+            // wait of 50 minutes before failing a message.
+            return
+                outerRetryPolicy.WrapAsync(
+                    circuitBreakerPolicy.WrapAsync(
+                        transientRetryPolicy));
+        }
+        
+        static readonly IAsyncPolicy RetryPolicy = CreatePolicy();
+        
+        static Task SendWithRetries(Func<Task> callback)
+        {
+            return RetryPolicy.ExecuteAsync(callback);
+        }
+
+         /// Send a message to a thread in a channel.
+        public static async Task SendToThreadAsync(string appId, string appPassword, string serviceUrl, string conversationId, string message)
+        {
+            var activity = MessageFactory.Text(message);
+            activity.Summary = message; // Ensure that the summary text is populated so the toast notifications aren't generic text.
+
+            var credentials = new MicrosoftAppCredentials(appId, appPassword);
+
+            var connectorClient = new ConnectorClient(new Uri(serviceUrl), credentials);
+            await SendWithRetries(async () => 
+                    await connectorClient.Conversations.SendToConversationAsync(conversationId, activity));
         }
 
     }
