@@ -1,9 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31410.357
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35004.147
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MeetingEvents", "MeetingEvents\MeetingEvents.csproj", "{BEE3FB6B-5F07-491F-9669-23B0C1CA4A30}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{82D04368-B010-4004-A898-475A526C7A2D}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\master_demowebapprbb0032.yml = .github\workflows\master_demowebapprbb0032.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

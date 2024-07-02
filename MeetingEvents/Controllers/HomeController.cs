@@ -59,7 +59,16 @@ namespace TeamsAuthSSO.Controllers
             var content = await new StreamReader(this.Request.Body).ReadToEndAsync();
             return Content(string.Empty);
         }
-        
+
+        //Methose that receives a Post from GraphAPI for a subscription event
+        [HttpGet("api/SiteUrl")]
+        public IActionResult SiteUrl()
+        {
+            //Return the string containing the SiteUrl
+            var url = _configuration.GetValue(typeof(string), "SiteUrl");
+            return Ok($"url: {url}");
+        }
+
         public IActionResult Configure()
         {
 
