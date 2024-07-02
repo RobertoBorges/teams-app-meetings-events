@@ -2,3 +2,4 @@ bin
 obj
 MeetingEvents/wwwroot/photos/
 __azurite*
+/.vs/MeetingEvents
