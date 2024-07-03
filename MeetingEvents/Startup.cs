@@ -3,8 +3,6 @@
 
 namespace MeetingBots
 {
-    using System;
-    using System.Collections.Generic;
     using Microsoft.AspNetCore.Authentication.JwtBearer;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
@@ -16,6 +14,8 @@ namespace MeetingBots
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Identity.Web;
+    using System;
+    using System.Collections.Generic;
     using TeamsTabSSO.Helper;
 
     public class Startup
@@ -82,7 +82,9 @@ namespace MeetingBots
             {
                 options.TokenValidationParameters.ValidAudiences = new List<string> { Configuration["AzureAd:ClientId"], Configuration["AzureAd:ApplicationIdURI"].ToUpperInvariant() };
                 options.TokenValidationParameters.AudienceValidator = SSOAuthHelper.AudienceValidator;
-            });            
+            });
+
+            services.AddHealthChecks();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -101,6 +103,7 @@ namespace MeetingBots
                 .UseAuthorization()
                 .UseEndpoints(endpoints =>
                 {
+                    endpoints.MapHealthChecks("/healthz");
                     endpoints.MapControllers();
                     endpoints.MapControllerRoute(
                         name: "default",
